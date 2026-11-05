@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from "react";
 import { supabase } from "./supabase";
-
 export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -9,7 +7,6 @@ export default function App() {
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-
   const [students, setStudents] = useState([]);
   const [presentations, setPresentations] = useState([]);
   const [evaluations, setEvaluations] = useState([]);
@@ -17,8 +14,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
-
-  async function login(event) {
+   async function login(event) {
     event.preventDefault();
     setLoading(true);
     setError("");
