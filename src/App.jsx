@@ -14,6 +14,14 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
+  const [studentPresentations, setStudentPresentations] = useState([]);
+  const [studentEvaluations, setStudentEvaluations] = useState([]);
+  const [selectedPresentation, setSelectedPresentation] = useState("");
+  const [studentScore, setStudentScore] = useState("");
+  const [studentComment, setStudentComment] = useState("");
+  const [studentLoading, setStudentLoading] = useState(false);
+  const [studentError, setStudentError] = useState("");
+  const [studentSuccess, setStudentSuccess] = useState("");
    async function login(event) {
     event.preventDefault();
     setLoading(true);
