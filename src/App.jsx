@@ -125,12 +125,14 @@ async function loadStudentData() {
   setStudentEvaluations(evaluationData || []);
   setStudentLoading(false);
 }
-  useEffect(() => {
-    if (user && profile?.role === "teacher") {
-      loadDashboard();
-    }
-  }, [user, profile]);
-
+ useEffect(() => {
+  if (user && profile?.role === "teacher") {
+    loadDashboard();
+  } 
+  if (user && profile?.role === "student") {
+    loadStudentData();
+  }
+}, [user, profile]);
   async function logout() {
     await supabase.auth.signOut();
     setUser(null);
