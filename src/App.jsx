@@ -120,10 +120,15 @@ async function loadStudentData() {
     setStudentLoading(false);
     return;
   }
-
-  setStudentPresentations(
+setMyPresentations(
   (presentationData || []).filter(
-    item => item.presenter_id !== user.id
+    item => item.presenter_id === user.id && item.is_completed === true
+  )
+);
+
+setStudentPresentations(
+  (presentationData || []).filter(
+    item => item.presenter_id !== user.id && item.is_completed === false
   )
 );
   setStudentEvaluations(evaluationData || []);
