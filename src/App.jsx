@@ -14,6 +14,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
+  const [myPresentations, setMyPresentations] = useState([]);
   const [studentPresentations, setStudentPresentations] = useState([]);
   const [studentEvaluations, setStudentEvaluations] = useState([]);
   const [selectedPresentation, setSelectedPresentation] = useState("");
@@ -100,7 +101,7 @@ async function loadStudentData() {
   const { data: presentationData, error: presentationError } =
     await supabase
       .from("presentations")
-      .select("id, title, presenter_id, presentation_date")
+      .select("id, title, presenter_id, presentation_date, is_completed") 
       .order("created_at", { ascending: false });
 
   if (presentationError) {
@@ -301,11 +302,11 @@ if (profile.role === "student") {
           <p style={{ color: "red" }}>{studentError}</p>
         )}
 
-        {!studentLoading && studentPresentations.length === 0 && (
+        {!studentLoading && myPresentations.length === 0 && (
           <p>Aucune présentation disponible pour le moment.</p>
         )}
 
-        {studentPresentations.map(item => (
+        {myPresentations.map(item => ( 
           <div key={item.id} style={{
             border: "1px solid #ddd",
             padding: "15px",
