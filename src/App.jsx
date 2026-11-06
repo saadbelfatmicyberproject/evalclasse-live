@@ -93,7 +93,38 @@ export default function App() {
 
     setDataLoading(false);
   }
+async function loadStudentData() {
+  setStudentLoading(true);
+  setStudentError("");
 
+  const { data: presentationData, error: presentationError } =
+    await supabase
+      .from("presentations")
+      .select("id, title, presenter_id, presentation_date")
+      .order("created_at", { ascending: false });
+
+  if (presentationError) {
+    setStudentError("Erreur de chargement des présentations : " + presentationError.message);
+    setStudentLoading(false);
+    return;
+  }
+
+  const { data: evaluationData, error: evaluationError } =
+    await supabase
+      .from("evaluations")
+      .select("id, presentation_id, evaluator_id, score, comment")
+      .eq("evaluator_id", user.id);
+
+  if (evaluationError) {
+    setStudentError("Erreur de chargement des évaluations : " + evaluationError.message);
+    setStudentLoading(false);
+    return;
+  }
+
+  setStudentPresentations(presentationData || []);
+  setStudentEvaluations(evaluationData || []);
+  setStudentLoading(false);
+}
   useEffect(() => {
     if (user && profile?.role === "teacher") {
       loadDashboard();
