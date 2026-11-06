@@ -206,20 +206,95 @@ async function loadStudentData() {
       </main>
     );
   }
-
-  if (profile.role !== "teacher") {
-    return (
-      <main className="app">
-        <section className="login-card">
+if (profile.role === "student") {
+  return (
+    <main style={{
+      minHeight: "100vh",
+      background: "#f3f6fa",
+      padding: "25px",
+      fontFamily: "Arial, sans-serif",
+      color: "#203047"
+    }}>
+      <header style={{
+        background: "#173b68",
+        color: "white",
+        padding: "25px",
+        borderRadius: "14px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap"
+      }}>
+        <div>
           <h1>ÉvalClasse Live</h1>
           <h2>Espace étudiant</h2>
           <p>Bienvenue, {profile.full_name || "Étudiant"} !</p>
-          <button onClick={logout}>Se déconnecter</button>
-        </section>
-      </main>
-    );
-  }
+        </div>
 
+        <button onClick={logout}>
+          Se déconnecter
+        </button>
+      </header>
+
+      <section style={{
+        background: "white",
+        padding: "22px",
+        marginTop: "25px",
+        borderRadius: "12px"
+      }}>
+        <h2>Mes présentations</h2>
+
+        {studentLoading && <p>Chargement des présentations...</p>}
+
+        {studentError && (
+          <p style={{ color: "red" }}>{studentError}</p>
+        )}
+
+        {!studentLoading && studentPresentations.length === 0 && (
+          <p>Aucune présentation disponible pour le moment.</p>
+        )}
+
+        {studentPresentations.map(item => (
+          <div key={item.id} style={{
+            border: "1px solid #ddd",
+            padding: "15px",
+            borderRadius: "8px",
+            marginBottom: "12px"
+          }}>
+            <h3>{item.title}</h3>
+            <p>
+              Date : {item.presentation_date || "Non définie"}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      <section style={{
+        background: "white",
+        padding: "22px",
+        marginTop: "20px",
+        borderRadius: "12px"
+      }}>
+        <h2>Mes évaluations</h2>
+
+        {studentEvaluations.length === 0 ? (
+          <p>Vous n'avez pas encore effectué d'évaluation.</p>
+        ) : (
+          studentEvaluations.map(item => (
+            <div key={item.id} style={{
+              borderBottom: "1px solid #ddd",
+              padding: "12px"
+            }}>
+              <p>Présentation : {item.presentation_id}</p>
+              <p>Note : {item.score}/20</p>
+              <p>Commentaire : {item.comment}</p>
+            </div>
+          ))
+        )}
+      </section>
+    </main>
+  );
+} 
   return (
     <main style={{
       minHeight: "100vh",
