@@ -121,9 +121,55 @@ async function loadStudentData() {
     return;
   }
 
-  setStudentPresentations(presentationData || []);
+  setStudentPresentations(
+  (presentationData || []).filter(
+    item => item.presenter_id !== user.id
+  )
+);
   setStudentEvaluations(evaluationData || []);
   setStudentLoading(false);
+}
+  async function submitEvaluation(event) {
+  event.preventDefault();
+
+  setStudentError("");
+  setStudentSuccess("");
+
+  if (!selectedPresentation) {
+    setStudentError("Veuillez sélectionner une présentation.");
+    return;
+  }
+
+  const score = Number(studentScore);
+
+  if (!Number.isFinite(score) || score < 0 || score > 20) {
+    setStudentError("La note doit être comprise entre 0 et 20.");
+    return;
+  }
+
+  setStudentLoading(true);
+
+  const { error: insertError } = await supabase
+    .from("evaluations")
+    .insert({
+      presentation_id: selectedPresentation,
+      evaluator_id: user.id,
+      score: score,
+      comment: studentComment.trim()
+    });
+
+  if (insertError) {
+    setStudentError("Erreur d'enregistrement : " + insertError.message);
+    setStudentLoading(false);
+    return;
+  }
+
+  setStudentSuccess("Votre évaluation a été enregistrée avec succès !");
+  setSelectedPresentation("");
+  setStudentScore("");
+  setStudentComment("");
+
+  await loadStudentData();
 }
  useEffect(() => {
   if (user && profile?.role === "teacher") {
@@ -268,7 +314,102 @@ if (profile.role === "student") {
           </div>
         ))}
       </section>
+<section style={{
+  background: "white",
+  padding: "22px",
+  marginTop: "20px",
+  borderRadius: "12px"
+}}>
+  <h2>Évaluer une présentation</h2>
 
+  <form onSubmit={submitEvaluation}>
+
+    <label>Choisir une présentation</label>
+
+    <select
+      value={selectedPresentation}
+      onChange={e => setSelectedPresentation(e.target.value)}
+      required
+      style={{
+        display: "block",
+        width: "100%",
+        padding: "12px",
+        margin: "10px 0 18px",
+        borderRadius: "8px",
+        border: "1px solid #ccd5e0"
+      }}
+    >
+      <option value="">Sélectionner une présentation</option>
+
+      {studentPresentations.map(item => (
+        <option key={item.id} value={item.id}>
+          {item.title}
+        </option>
+      ))}
+    </select>
+
+    <label>Votre note sur 20</label>
+
+    <input
+      type="number"
+      min="0"
+      max="20"
+      step="0.5"
+      value={studentScore}
+      onChange={e => setStudentScore(e.target.value)}
+      required
+      style={{
+        display: "block",
+        width: "100%",
+        padding: "12px",
+        margin: "10px 0 18px",
+        borderRadius: "8px",
+        border: "1px solid #ccd5e0"
+      }}
+    />
+
+    <label>Votre commentaire</label>
+
+    <textarea
+      value={studentComment}
+      onChange={e => setStudentComment(e.target.value)}
+      placeholder="Écrivez votre commentaire..."
+      rows="4"
+      style={{
+        display: "block",
+        width: "100%",
+        padding: "12px",
+        margin: "10px 0 18px",
+        borderRadius: "8px",
+        border: "1px solid #ccd5e0"
+      }}
+    />
+
+    {studentError && (
+      <p style={{ color: "red" }}>{studentError}</p>
+    )}
+
+    {studentSuccess && (
+      <p style={{ color: "green" }}>{studentSuccess}</p>
+    )}
+
+    <button
+      type="submit"
+      disabled={studentLoading}
+      style={{
+        padding: "12px 20px",
+        background: "#173b68",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer"
+      }}
+    >
+      {studentLoading ? "Enregistrement..." : "Envoyer mon évaluation"}
+    </button>
+
+  </form>
+</section>
       <section style={{
         background: "white",
         padding: "22px",
