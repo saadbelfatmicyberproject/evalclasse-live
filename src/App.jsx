@@ -11,6 +11,12 @@ export default function App() {
   const [presentations, setPresentations] = useState([]);
   const [evaluations, setEvaluations] = useState([]);
   const [grades, setGrades] = useState([]);
+  const [selectedGradePresentation, setSelectedGradePresentation] = useState("");
+  const [teacherScore, setTeacherScore] = useState("");
+  const [teacherComment, setTeacherComment] = useState("");
+  const [teacherGradeLoading, setTeacherGradeLoading] = useState(false);
+  const [teacherGradeError, setTeacherGradeError] = useState("");
+  const [teacherGradeSuccess, setTeacherGradeSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
@@ -92,6 +98,63 @@ export default function App() {
 
     setDataLoading(false);
   }
+  async function submitTeacherGrade(event) {
+  event.preventDefault();
+
+  setTeacherGradeError("");
+  setTeacherGradeSuccess("");
+
+  if (!selectedGradePresentation) {
+    setTeacherGradeError("Veuillez sélectionner une présentation.");
+    return;
+  }
+
+  const score = Number(teacherScore);
+
+  if (!Number.isFinite(score) || score < 0 || score > 20) {
+    setTeacherGradeError("La note doit être comprise entre 0 et 20.");
+    return;
+  }
+
+  const presentation = presentations.find(
+    item => item.id === selectedGradePresentation
+  );
+
+  if (!presentation) {
+    setTeacherGradeError("Présentation introuvable.");
+    return;
+  }
+
+  setTeacherGradeLoading(true);
+
+  const { error } = await supabase
+    .from("final_grades")
+    .upsert(
+      {
+        presentation_id: presentation.id,
+        student_id: presentation.presenter_id,
+        score: score,
+        teacher_comment: teacherComment.trim()
+      },
+      {
+        onConflict: "presentation_id"
+      }
+    );
+
+  if (error) {
+    setTeacherGradeError("Erreur d'enregistrement : " + error.message);
+    setTeacherGradeLoading(false);
+    return;
+  }
+
+  setTeacherGradeSuccess("Note officielle enregistrée avec succès !");
+  setSelectedGradePresentation("");
+  setTeacherScore("");
+  setTeacherComment("");
+
+  await loadDashboard();
+  setTeacherGradeLoading(false);
+}
   async function markPresentationCompleted(presentationId) {
   const { error } = await supabase
     .from("presentations")
@@ -596,48 +659,183 @@ if (profile.role === "student") {
           </div>
         </>
       )}
-
+      
       {activeTab === "presentations" && (
         <>
           <h2>Liste des présentations</h2>
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th>Titre</th>
-                <th>Présentateur (ID)</th>
-                <th>Date</th>
-                <th>État</th>
-              </tr>
-            </thead>
-      <tbody>
-  {presentations.map(item => (
-    <tr key={item.id}>
-      <td>{item.title}</td>
-      <td>{item.presenter_id}</td>
-      <td>{item.presentation_date || "Non définie"}</td>
-      <td>
-        {item.is_completed ? (
-          <span style={{ color: "green" }}>Terminée</span>
-        ) : (
-          <button
-            onClick={() => markPresentationCompleted(item.id)}
-            style={{
-              padding: "8px 12px",
-              background: "#173b68",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer"
-            }}
-          >
-            Marquer comme terminée
-          </button>
-        )}
-      </td>
-    </tr>
-  ))}
-</tbody>
-          </table>
+
+          <div style={{ overflowX: "auto" }}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th>Titre</th>
+                  <th>Présentateur (ID)</th>
+                  <th>Date</th>
+                  <th>État</th>
+                  <th>Évaluation du professeur</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {presentations.map(item => (
+                  <tr key={item.id}>
+                    <td>{item.title}</td>
+                    <td>{item.presenter_id}</td>
+                    <td>{item.presentation_date || "Non définie"}</td>
+
+                    <td>
+                      {item.is_completed ? (
+                        <span style={{ color: "green" }}>
+                          Terminée
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => markPresentationCompleted(item.id)}
+                          style={{
+                            padding: "8px 12px",
+                            background: "#173b68",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Marquer comme terminée
+                        </button>
+                      )}
+                    </td>
+
+                    <td>
+                      {!item.is_completed ? (
+                        <button
+                          onClick={() => {
+                            setSelectedGradePresentation(item.id);
+                            setTeacherScore("");
+                            setTeacherComment("");
+                            setTeacherGradeError("");
+                            setTeacherGradeSuccess("");
+                          }}
+                          style={{
+                            padding: "8px 12px",
+                            background: "#16804a",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Évaluer la présentation
+                        </button>
+                      ) : (
+                        <span>Non disponible</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {selectedGradePresentation && (
+            <section style={{
+              background: "white",
+              padding: "22px",
+              marginTop: "25px",
+              borderRadius: "12px"
+            }}>
+              <h2>Évaluation officielle du professeur</h2>
+
+              <p>
+                Présentation : {
+                  presentations.find(
+                    item => item.id === selectedGradePresentation
+                  )?.title
+                }
+              </p>
+
+              <form onSubmit={submitTeacherGrade}>
+                <label>Note officielle sur 20</label>
+
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  step="0.5"
+                  value={teacherScore}
+                  onChange={e => setTeacherScore(e.target.value)}
+                  required
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "12px",
+                    margin: "10px 0 18px",
+                    borderRadius: "8px",
+                    border: "1px solid #ccd5e0"
+                  }}
+                />
+
+                <label>Commentaire du professeur</label>
+
+                <textarea
+                  value={teacherComment}
+                  onChange={e => setTeacherComment(e.target.value)}
+                  placeholder="Commentaire sur la présentation..."
+                  rows="4"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "12px",
+                    margin: "10px 0 18px",
+                    borderRadius: "8px",
+                    border: "1px solid #ccd5e0"
+                  }}
+                />
+
+                {teacherGradeError && (
+                  <p style={{ color: "red" }}>
+                    {teacherGradeError}
+                  </p>
+                )}
+
+                {teacherGradeSuccess && (
+                  <p style={{ color: "green" }}>
+                    {teacherGradeSuccess}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={teacherGradeLoading}
+                  style={{
+                    padding: "12px 20px",
+                    background: "#16804a",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer"
+                  }}
+                >
+                  {teacherGradeLoading
+                    ? "Enregistrement..."
+                    : "Enregistrer la note officielle"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedGradePresentation("")}
+                  style={{
+                    padding: "12px 20px",
+                    marginLeft: "10px",
+                    border: "1px solid #ccd5e0",
+                    borderRadius: "8px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Annuler
+                </button>
+              </form>
+            </section>
+          )}
         </>
       )}
 
