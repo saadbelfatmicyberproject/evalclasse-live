@@ -137,7 +137,7 @@ export default function App() {
         teacher_comment: teacherComment.trim()
       },
       {
-        onConflict: "presentation_id"
+        onConflict: "student_id,presentation_id"
       }
     );
 
