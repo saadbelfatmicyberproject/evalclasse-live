@@ -163,16 +163,22 @@ export default function App() {
     );
 
     return {
-      "Nom prénom": student?.full_name || "Nom inconnu",
-      "Note finale": Number(item.score),
-      "Date": item.created_at
-        ? new Date(item.created_at).toLocaleDateString("fr-FR")
-        : ""
-    };
+  "Nom prénom": student?.full_name || "Nom inconnu",
+  "Note finale": Number(item.score),
+  "Date": item.created_at
+    ? new Date(item.created_at).toLocaleDateString("fr-FR")
+    : "",
+  "Commentaire du professeur": item.teacher_comment || ""
+};
   });
 
   const worksheet = XLSX.utils.json_to_sheet(exportData, {
-    header: ["Nom prénom", "Note finale", "Date"]
+  header: [
+  "Nom prénom",
+  "Note finale",
+  "Date",
+  "Commentaire du professeur"
+]
   });
 
   const workbook = XLSX.utils.book_new();
@@ -757,8 +763,16 @@ if (profile.role === "student") {
                           Évaluer la présentation
                         </button>
                       ) : (
-                        <span>Non disponible</span>
-                      )}
+                       <span>
+                        {grades.find(
+                           grade => grade.presentation_id === item.id
+                        )?.score !== undefined
+                           ? `${grades.find(
+                              grade => grade.presentation_id === item.id
+                           ).score}/20`
+                       : "Non disponible"}
+                     </span>
+                  )}
                     </td>
                   </tr>
                 ))}
