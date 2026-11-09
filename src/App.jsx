@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "./supabase";
+import * as XLSX from "xlsx";
 export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,7 +81,7 @@ export default function App() {
         .select("id, presentation_id, evaluator_id, score, comment"),
 
       supabase.from("final_grades")
-        .select("id, presentation_id, student_id, score, teacher_comment")
+        .select("id, presentation_id, student_id, score, teacher_comment, created_at")
     ]);
 
     const failed = results.find(result => result.error);
@@ -154,6 +155,35 @@ export default function App() {
 
   await loadDashboard();
   setTeacherGradeLoading(false);
+}
+  function exportGradesToExcel() {
+  const exportData = grades.map(item => {
+    const student = students.find(
+      s => s.id === item.student_id
+    );
+
+    return {
+      "Nom prénom": student?.full_name || "Nom inconnu",
+      "Note finale": Number(item.score),
+      "Date": item.created_at
+        ? new Date(item.created_at).toLocaleDateString("fr-FR")
+        : ""
+    };
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData, {
+    header: ["Nom prénom", "Note finale", "Date"]
+  });
+
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Notes finales"
+  );
+
+  XLSX.writeFile(workbook, "Notes_finales.xlsx");
 }
   async function markPresentationCompleted(presentationId) {
   const { error } = await supabase
