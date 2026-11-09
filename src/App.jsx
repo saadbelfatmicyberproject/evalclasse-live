@@ -609,7 +609,6 @@ if (profile.role === "student") {
                 <th>État</th>
               </tr>
             </thead>
-            <tbody>
       <tbody>
   {presentations.map(item => (
     <tr key={item.id}>
@@ -638,7 +637,6 @@ if (profile.role === "student") {
     </tr>
   ))}
 </tbody>
-            </tbody>
           </table>
         </>
       )}
