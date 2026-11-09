@@ -67,11 +67,9 @@ export default function App() {
       supabase.from("profiles")
         .select("id, full_name, student_code, role")
         .eq("role", "student"),
-
       supabase.from("presentations")
-        .select("id, title, presenter_id, presentation_date")
+        .select("id, title, presenter_id, presentation_date, is_completed")
         .order("created_at", { ascending: false }),
-
       supabase.from("evaluations")
         .select("id, presentation_id, evaluator_id, score, comment"),
 
@@ -94,6 +92,20 @@ export default function App() {
 
     setDataLoading(false);
   }
+  async function markPresentationCompleted(presentationId) {
+  const { error } = await supabase
+    .from("presentations")
+    .update({ is_completed: true })
+    .eq("id", presentationId);
+
+  if (error) {
+    alert("Erreur : " + error.message);
+    return;
+  }
+
+  alert("Présentation marquée comme terminée !");
+  await loadDashboard();
+}
 async function loadStudentData() {
   setStudentLoading(true);
   setStudentError("");
@@ -594,16 +606,38 @@ if (profile.role === "student") {
                 <th>Titre</th>
                 <th>Présentateur (ID)</th>
                 <th>Date</th>
+                <th>État</th>
               </tr>
             </thead>
             <tbody>
-              {presentations.map(item => (
-                <tr key={item.id}>
-                  <td>{item.title}</td>
-                  <td>{item.presenter_id}</td>
-                  <td>{item.presentation_date || "Non définie"}</td>
-                </tr>
-              ))}
+      <tbody>
+  {presentations.map(item => (
+    <tr key={item.id}>
+      <td>{item.title}</td>
+      <td>{item.presenter_id}</td>
+      <td>{item.presentation_date || "Non définie"}</td>
+      <td>
+        {item.is_completed ? (
+          <span style={{ color: "green" }}>Terminée</span>
+        ) : (
+          <button
+            onClick={() => markPresentationCompleted(item.id)}
+            style={{
+              padding: "8px 12px",
+              background: "#173b68",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer"
+            }}
+          >
+            Marquer comme terminée
+          </button>
+        )}
+      </td>
+    </tr>
+  ))}
+</tbody>
             </tbody>
           </table>
         </>
