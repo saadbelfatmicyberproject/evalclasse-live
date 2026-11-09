@@ -897,7 +897,21 @@ if (profile.role === "student") {
 
       {activeTab === "grades" && (
         <>
-          <h2>Notes finales</h2>
+          <h2>Notes finales</h2> 
+          <button
+  onClick={exportGradesToExcel}
+  style={{
+    padding: "10px 18px",
+    backgroundColor: "#16a34a",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    marginBottom: "20px"
+  }}
+>
+  Télécharger fichier Excel
+</button>
           <table style={tableStyle}>
             <thead>
               <tr>
