@@ -10,6 +10,9 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [students, setStudents] = useState([]);
   const [presentations, setPresentations] = useState([]);
+  const [drawLoading, setDrawLoading] = useState(false);
+  const [presentationActionError, setPresentationActionError] = useState("");
+  const [countdownNow, setCountdownNow] = useState(Date.now());
   const [evaluations, setEvaluations] = useState([]);
   const [grades, setGrades] = useState([]);
   const [selectedGradePresentation, setSelectedGradePresentation] = useState("");
@@ -75,7 +78,7 @@ export default function App() {
         .select("id, full_name, student_code, role")
         .eq("role", "student"),
       supabase.from("presentations")
-        .select("id, title, presenter_id, presentation_date, is_completed")
+        .select("id, title, presenter_id, presentation_date, is_completed, status, selected_at, evaluations_starts_at")
         .order("created_at", { ascending: false }),
       supabase.from("evaluations")
         .select("id, presentation_id, evaluator_id, score, comment"),
@@ -99,6 +102,27 @@ export default function App() {
 
     setDataLoading(false);
   }
+  
+async function drawRandomPresentation() {
+  setDrawLoading(true);
+  setPresentationActionError("");
+
+  const { data, error } = await supabase.rpc(
+    "draw_random_presentation"
+  );
+
+  if (error) {
+    setPresentationActionError(error.message);
+    setDrawLoading(false);
+    return;
+  }
+
+  await loadDashboard();
+
+  setPresentationActionError("");
+  setDrawLoading(false);
+}
+
   async function submitTeacherGrade(event) {
   event.preventDefault();
 
@@ -212,7 +236,7 @@ async function loadStudentData() {
   const { data: presentationData, error: presentationError } =
     await supabase
       .from("presentations")
-      .select("id, title, presenter_id, presentation_date, is_completed") 
+      .select("id, title, presenter_id, presentation_date, is_completed, status, selected_at, evaluations_starts_at") 
       .order("created_at", { ascending: false });
 
   if (presentationError) {
@@ -296,6 +320,13 @@ setStudentPresentations(
     loadStudentData();
   }
 }, [user, profile]);
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setCountdownNow(Date.now());
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, []);
   async function logout() {
     await supabase.auth.signOut();
     setUser(null);
@@ -315,6 +346,26 @@ setStudentPresentations(
     ["evaluations", "Évaluations"],
     ["grades", "Notes finales"]
   ];
+  
+const currentPresentation = presentations.find(
+  item =>
+    item.status === "observing" ||
+    item.status === "active"
+);
+
+const evaluationStartTime = currentPresentation?.evaluations_starts_at
+  ? new Date(currentPresentation.evaluations_starts_at).getTime()
+  : null;
+
+const secondsRemaining = evaluationStartTime
+  ? Math.max(0, Math.ceil((evaluationStartTime - countdownNow) / 1000))
+  : 0;
+
+const countdownLabel =
+  String(Math.floor(secondsRemaining / 60)).padStart(2, "0") +
+  ":" +
+  String(secondsRemaining % 60).padStart(2, "0");
+
 
   const buttonStyle = (active) => ({
     padding: "11px 15px",
@@ -699,6 +750,80 @@ if (profile.role === "student") {
       {activeTab === "presentations" && (
         <>
           <h2>Liste des présentations</h2>
+          
+<div style={{
+  background: "white",
+  padding: "20px",
+  marginBottom: "20px",
+  borderRadius: "12px"
+}}>
+  <h3>Gestion des présentations en direct</h3>
+
+  <button
+    onClick={drawRandomPresentation}
+    disabled={
+      drawLoading ||
+      presentations.some(
+        item =>
+          item.status === "observing" ||
+          item.status === "active"
+      )
+    }
+    style={{
+      padding: "12px 20px",
+      background: "#173b68",
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      cursor: "pointer"
+    }}
+  >
+    {drawLoading
+      ? "Tirage en cours..."
+      : "Lancer le tirage aléatoire"}
+  </button>
+
+  {presentationActionError && (
+    <p style={{ color: "red" }}>
+      {presentationActionError}
+    </p>
+  )}
+  
+{currentPresentation && (
+  <div style={{
+    marginTop: "20px",
+    padding: "18px",
+    background: "#edf4ff",
+    borderRadius: "10px"
+  }}>
+    <h3>Présentation sélectionnée</h3>
+
+    <p>
+      <strong>Titre :</strong> {currentPresentation.title}
+    </p>
+
+    {currentPresentation.status === "observing" && (
+      <>
+        <h2 style={{ color: "#173b68" }}>
+          Temps d'observation : {countdownLabel}
+        </h2>
+        <p>
+          Les étudiants observent la présentation.
+          Les évaluations ne sont pas encore ouvertes.
+        </p>
+      </>
+    )}
+
+    {currentPresentation.status === "active" && (
+      <h2 style={{ color: "#16804a" }}>
+        Évaluations ouvertes
+      </h2>
+    )}
+  </div>
+)}
+
+</div>
+
 
           <div style={{ overflowX: "auto" }}>
             <table style={tableStyle}>
