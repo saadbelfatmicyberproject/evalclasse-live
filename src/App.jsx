@@ -43,6 +43,71 @@ export default function App() {
 
   const [clockNow, setClockNow] = useState(Date.now());
   const activationAttempt = useRef(null);
+  const profileRequest = useRef(0);
+
+  async function restoreProfile(authUser) {
+    const requestId = ++profileRequest.current;
+    setUser(authUser);
+    setProfile(null);
+
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("full_name, role")
+      .eq("id", authUser.id)
+      .single();
+
+    if (requestId !== profileRequest.current) return;
+
+    if (profileError) {
+      setError("Impossible de récupérer votre profil : " + profileError.message);
+      setProfile(null);
+      return;
+    }
+
+    setError("");
+    setProfile(profileData);
+  }
+
+  // Restaurer automatiquement la session Supabase après un rechargement.
+  useEffect(() => {
+    let mounted = true;
+
+    const applySession = (session) => {
+      if (!mounted) return;
+
+      if (session?.user) {
+        // Différer la lecture du profil hors du callback d'authentification.
+        Promise.resolve().then(() => {
+          if (mounted) restoreProfile(session.user);
+        });
+      } else {
+        profileRequest.current += 1;
+        setUser(null);
+        setProfile(null);
+      }
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
+    });
+
+    supabase.auth.getSession().then(({ data, error: sessionError }) => {
+      if (!mounted) return;
+      if (sessionError) {
+        setError("Impossible de restaurer la session : " + sessionError.message);
+        return;
+      }
+      applySession(data.session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      profileRequest.current += 1;
+    };
+  }, []);
 
   async function login(event) {
     event.preventDefault();
@@ -54,16 +119,7 @@ export default function App() {
       setLoading(false);
       return;
     }
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles").select("full_name, role").eq("id", data.user.id).single();
-    if (profileError) {
-      setError("Impossible de récupérer votre profil : " + profileError.message);
-      await supabase.auth.signOut();
-      setLoading(false);
-      return;
-    }
-    setUser(data.user);
-    setProfile(profileData);
+    await restoreProfile(data.user);
     setLoading(false);
   }
 
@@ -234,6 +290,7 @@ export default function App() {
   }
 
   async function logout() {
+    profileRequest.current += 1;
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
@@ -464,4 +521,3 @@ export default function App() {
     </main>
   );
 }
-
